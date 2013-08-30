@@ -1,0 +1,36 @@
+* Überblick: SSH Module auf CPAN
+  - Net::SSH
+  - Net::SSH::Perl
+  - Net::SSH::Any
+  - Net::SSH::Expect
+  - Net::SSH::Tunnel
+  - Net::SSH::W32Perl
+  - Net::SSH2
+  - Net::SSH2::Expect
+  - IPC::PerlSSH
+
+* Besonderheiten von Net::OpenSSH
+  - Master/Slave Betriebsart (Benchmark!)
+  - TCP Tunnels
+  - rsync
+  - sftp
+  
+* Einschränkungen
+  - nur SSH Protokoll Version 2
+  - openssh 4.1+ erforderlich (2005)
+  - Win32 nicht lauffähig
+
+
+--- benchmark
+
+$ time for ((i=0; i<100; i++)); do ssh localhost true; done
+
+real    0m10.020s
+user    0m2.178s
+sys     0m0.486s
+
+$ time perl -MNet::OpenSSH -e '$ssh = Net::OpenSSH->new("localhost"); $ssh->system("true") for (1..100)'
+
+real    0m2.013s
+user    0m0.814s
+sys     0m0.410s
