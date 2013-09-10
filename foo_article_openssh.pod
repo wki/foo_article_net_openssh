@@ -1,0 +1,118 @@
+=encoding utf-8
+=head1 Net::OpenSSH
+
+=head2 ssh und Perl
+
+C<ssh> ist das übliche Werkzeug, um sichere Verbindungen zu entfernten Rechnern aufzubauen, Dateien auszutauschen oder Tunnel für TCP-Verbindungen zu erstellen. Dazu gehören auch zusätzliche ausführbare Programme wie C<scp> oder C<sftp>.
+
+Da diese Werkzeuge auf *nix Plattformen als binär ausführbare Programme zur Verfügung stehen, genügt prinzipiell ein C<system> Aufruf, um in den Genuß der Funktionalität der Programme zu gelangen.
+
+    # Dateien auf dem entfernten System auflisten:
+    system 'ssh', 'user@hostname.domain', 'ls', '-l', '/verzeichnis';
+    say $? # 0 wenn kein Fehler
+    
+    # Eine Datei auf das entfernte System kopieren:
+    system 'scp', '/lokal/datei.txt', 'user@hostname.domain:/verzeichnis/';
+    say $? # 0 wenn kein Fehler
+
+So weit, so gut. Solange nichts schief geht, eventuelle Ausgaben der Kommandos auf dem Standard-Ausgabe oder -Fehler Kanal keine Rolle spielen, kann man so arbeiten. Doch leider gibt es eine Reihe von Unschönheiten bei diesem Ansatz:
+
+=over
+
+=item jedes einzelne abgesetzte Kommando führt eine erneute Authentifizierung beim entfernten Rechner durch, weswegen zum Teil unangenehme Laufzeiten entstehen können oder im schlimmsten Fall jedes mal eine Passwort-Eingabe notwendig wird.
+
+=item jede Operation muß als ssh/scp Befehl zusammengestellt werden, schön wäre es, wenn die relevanten Inhalte der Befehlszeilen irgendwie gekapselt werden könnten.
+
+=item das Abfangen von Fehlern und eventuell Fehlermeldungen zur späteren Weiterverarbeitung wäre nett.
+
+=back
+
+=head2 ssh auf CPAN
+
+Perl ist nicht nur die Sprache mit den vermutlich meisten Web Frameworks, sondern es gibt auch eine Menge an ssh Abstraktionen. Ein paar davon sind:
+
+=over
+
+=item Net::OpenSSH
+
+=item Net::SSH
+
+=item Net::SSH::Perl
+
+=item Net::SSH::Any
+
+=item Net::SSH::Expect
+
+=item Net::SSH::Tunnel
+
+=item Net::SSH::W32Perl
+
+=item Net::SSH2
+
+=item Net::SSH2::Expect
+
+=item IPC::PerlSSH
+
+=back
+
+Jedes einzelne dieser Module hat seine Vor- und Nachteile oder ist für bestimmte Aufgaben besonders gut einsetzbar. Der Autor von L<Net::OpenSSH> hat sich die Mühe gemacht, die meisten der oben genannten gegeneinander zu vergleichen. Bei ihm erntet jedes Kritik, was sein persönlicher Grund war, L<Net::OpenSSH> zu entwickeln.
+
+Der für mich persönlich ausschlaggebende Grund, L<Net::OpenSSH> einzusetzen, war dessen Performance. 100 ssh Verbindungen sind gegenüber dem direkten ssh-Aufruf aus einer Shell bei diesem Benchmark um Faktor 10 schneller. "v-webserver" soll einen Webserver in der DMZ unserer Firma sein. Der Aufruf erfolgte von meinem Arbeitsplatz-Rechner aus.
+
+    $ time for ((i=0; i<100; i++)); do ssh v-webserver true; done
+    
+    real  0m50.627s
+    user  0m0.917s
+    sys   0m0.508s
+    
+    $ time perl -MNet::OpenSSH \
+        -e '$ssh = Net::OpenSSH->new("v-webserver");
+            $ssh->system("true") for 1..100'
+    
+    real  0m4.950s
+    user  0m0.495s
+    sys   0m0.473s
+
+Was passiert hier? Warum ist L<Net::OpenSSH> deutlich schneller? <Net::OpenSSH> verwendet für Verbindungen zum entfernten SSH-Server den sogenannten Slave-Modus. Technisch gesehen wird hierbei lediglich eine TCP-Verbindung zum entfernten Rechner geöffnet und die ssh-Verbindung inklusive Authentifizierung hergestellt. Jeder einzelne abgesetzte Befehl startet zwar lokal und entfernt die notwendigen Prozesse, nutzt aber die bereits bestehende ssh-Verbindung ohne eine weitere Authentifizierung ausführen zu müssen. Je nach Latenz im Netzwerk können die Geschwindigkeitssteigerungen mehr oder weniger groß sein. Erfahrungsgemäß liegt die Steigerung im Bereich von Faktor 5 bis Faktor 20.
+
+=head2 Beispiel
+
+    ### TODO: besseres Beispiel?
+
+    #!/usr/bin/env perl
+    use strict;
+    use warnings;
+    use Net::OpenSSH;
+    
+    my $remote = Net::OpenSSH->new('me:secret@server.de');
+    
+    my @output = $remote->capture('sudo grep "snmpd" /var/log/syslog');
+    
+    $remote->scp_put('/local/file', '/remote/dir_or_file');
+    
+
+=head2 Was bietet Net::OpenSSH alles?
+
+* Verbindungsaufbau: ...
+  - password / passphrase
+  - ssh kommando
+  - timeout
+  - env für remote
+
+* Fehler-Behandlung: $ssh->error
+
+* Ausführung von entfernten Kommandos
+  ->system
+  ->test
+  ->capture, ->capture2, ->pipe_in, ->pipe_out
+
+* Dateien kopieren
+  ->scp_get, ->scp_put
+  ->rsync_get, ->rsync_put
+  ->sftp
+
+=head2 Einschränkungen
+* nur SSH Protokoll Version 2
+* openssh 4.1+ erforderlich (2005)
+* Win32 nicht lauffähig
+
