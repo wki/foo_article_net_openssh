@@ -9,11 +9,11 @@ Da diese Werkzeuge auf *nix Plattformen als binär ausführbare Programme zur Ve
 
     # Dateien auf dem entfernten System auflisten:
     system 'ssh', 'user@hostname.domain', 'ls', '-l', '/verzeichnis';
-    say $? # 0 wenn kein Fehler
+    say $?; # 0 wenn kein Fehler
     
     # Eine Datei auf das entfernte System kopieren:
     system 'scp', '/lokal/datei.txt', 'user@hostname.domain:/verzeichnis/';
-    say $? # 0 wenn kein Fehler
+    say $?; # 0 wenn kein Fehler
 
 So weit, so gut. Solange nichts schief geht, eventuelle Ausgaben der Kommandos auf dem Standard-Ausgabe oder -Fehler Kanal keine Rolle spielen, kann man so arbeiten. Doch leider gibt es eine Reihe von Unschönheiten bei diesem Ansatz:
 
@@ -21,9 +21,11 @@ So weit, so gut. Solange nichts schief geht, eventuelle Ausgaben der Kommandos a
 
 =item jedes einzelne abgesetzte Kommando führt eine erneute Authentifizierung beim entfernten Rechner durch, weswegen zum Teil unangenehme Laufzeiten entstehen können oder im schlimmsten Fall jedes mal eine Passwort-Eingabe notwendig wird.
 
-=item jede Operation muß als ssh/scp Befehl zusammengestellt werden, schön wäre es, wenn die relevanten Inhalte der Befehlszeilen irgendwie gekapselt werden könnten.
+=item jede Operation muß als ssh/scp Kommando zusammengestellt werden, schön wäre es, wenn die relevanten Inhalte der Kommandozeilen irgendwie gekapselt werden könnten.
 
 =item das Abfangen von Fehlern und eventuell Fehlermeldungen zur späteren Weiterverarbeitung wäre nett.
+
+=item zumindest bei der Benutzung von C<system> können keine Daten auf dem Standard-Eingabe Kanal des entfernt laufenden Prozesses gelegt werden.
 
 =back
 
@@ -73,33 +75,37 @@ Der für mich persönlich ausschlaggebende Grund, L<Net::OpenSSH> einzusetzen, w
     user  0m0.495s
     sys   0m0.473s
 
-Was passiert hier? Warum ist L<Net::OpenSSH> deutlich schneller? <Net::OpenSSH> verwendet für Verbindungen zum entfernten SSH-Server den sogenannten Slave-Modus. Technisch gesehen wird hierbei lediglich eine TCP-Verbindung zum entfernten Rechner geöffnet und die ssh-Verbindung inklusive Authentifizierung hergestellt. Jeder einzelne abgesetzte Befehl startet zwar lokal und entfernt die notwendigen Prozesse, nutzt aber die bereits bestehende ssh-Verbindung ohne eine weitere Authentifizierung ausführen zu müssen. Je nach Latenz im Netzwerk können die Geschwindigkeitssteigerungen mehr oder weniger groß sein. Erfahrungsgemäß liegt die Steigerung im Bereich von Faktor 5 bis Faktor 20.
+Was passiert hier? Warum ist L<Net::OpenSSH> deutlich schneller? <Net::OpenSSH> verwendet für Verbindungen zum entfernten SSH-Server den sogenannten Slave-Modus. Technisch gesehen wird hierbei lediglich eine TCP-Verbindung zum entfernten Rechner geöffnet und die ssh-Verbindung inklusive Authentifizierung darüber hergestellt. Jedes einzelne abgesetzte Kommando startet zwar lokal und entfernt die notwendigen ssh- und Kommando-prozesse, nutzt aber die bereits bestehende ssh-Verbindung ohne eine weitere Authentifizierung ausführen zu müssen. Je nach Latenz im Netzwerk können die Geschwindigkeitssteigerungen mehr oder weniger groß sein. Erfahrungsgemäß liegt die Steigerung im Bereich von Faktor 5 bis Faktor 20.
 
 =head2 Beispiel
-
-    ### TODO: besseres Beispiel?
 
     #!/usr/bin/env perl
     use strict;
     use warnings;
     use Net::OpenSSH;
     
+    # Verbindung aufbauen
     my $remote = Net::OpenSSH->new('me:secret@server.de');
     
+    # Standard Ausgabe zeilenweise
     my @output = $remote->capture('sudo grep "snmpd" /var/log/syslog');
     
+    # Datei auf den entfernten Rechner kopieren
     $remote->scp_put('/local/file', '/remote/dir_or_file');
-    
 
 =head2 Was bietet Net::OpenSSH alles?
 
-* Verbindungsaufbau: ...
-  - password / passphrase
-  - ssh kommando
-  - timeout
-  - env für remote
+=over
 
-* Fehler-Behandlung: $ssh->error
+=item Verbindungsaufbau
+
+wahlweise ein sprechender String, der Benutzer, Passwort, Host und Port enthalten kann oder einzelne Argumente in Hash-Schreibweise.
+
+Zusätzliche SSH-Optionen sind möglich. Außerdem kann das Passwort für den entfernten Rechner oder den lokal hinterlegten Schlüssel angegeben oder abgefragt werden.
+
+=item Fehler-Behandlung
+
+Die meisten Methoden einer ssh-Instanz liefern einen wahren Wert zurück, wenn die Ausführung erfolgreich war. Danach kann über die Methode C<error> der  Fehler der letzten Operation erfragt werden.
 
 * Ausführung von entfernten Kommandos
   ->system
@@ -110,6 +116,24 @@ Was passiert hier? Warum ist L<Net::OpenSSH> deutlich schneller? <Net::OpenSSH> 
   ->scp_get, ->scp_put
   ->rsync_get, ->rsync_put
   ->sftp
+
+=head2 Erweiterungen
+
+=over
+
+=item L<MooseX::Role::Net::OpenSSH>
+
+eine Moose-Rolle, die die Attribute C<ssh>, C<ssh_hostname>, C<ssh_username> sowie C<ssh_options> mitbringt. Die SSH-Verbindung wird beim ersten lesenden Zugriff auf C<ssh> aufgebaut und bleibt für die Lebensdauer der diese Rolle konsumierenden Klasse erhalten.
+
+=item L<Net::OpenSSH::Compat>
+
+bietet eine Reihe von Adaptern, mit denen das Verhalten diverser anderer SSH-Module emuliert wird.
+
+=item L<Net::OpenSSH::Parallel>
+
+erlaubt die parallele Ausführung zahlreicher Kommandos auf einer Reihe verschiedener Rechner.
+
+=back
 
 =head2 Einschränkungen
 * nur SSH Protokoll Version 2
