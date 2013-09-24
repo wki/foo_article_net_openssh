@@ -1,11 +1,12 @@
 =encoding utf-8
+
 =head1 Net::OpenSSH
 
 =head2 ssh und Perl
 
-C<ssh> ist das übliche Werkzeug, um sichere Verbindungen zu entfernten Rechnern aufzubauen, Dateien auszutauschen oder Tunnel für TCP-Verbindungen zu erstellen. Dazu gehören auch zusätzliche ausführbare Programme wie C<scp> oder C<sftp>.
+C<ssh> ist das übliche Werkzeug, um sichere Verbindungen zu entfernten Rechnern aufzubauen, Dateien auszutauschen oder Tunnel für TCP-Verbindungen zu erstellen. Dazu gehören auch einige ausführbare Programme wie C<scp> oder C<sftp>.
 
-Da diese Werkzeuge auf *nix Plattformen als binär ausführbare Programme zur Verfügung stehen, genügt prinzipiell ein C<system> Aufruf, um in den Genuß der Funktionalität der Programme zu gelangen.
+Da diese Werkzeuge auf *nix Plattformen als binär ausführbare Programme zur Verfügung stehen, genügt prinzipiell ein C<system> Aufruf, um in den Genuss der Funktionalität der Programme zu gelangen.
 
     # Dateien auf dem entfernten System auflisten:
     system 'ssh', 'user@hostname.domain', 'ls', '-l', '/verzeichnis';
@@ -19,13 +20,21 @@ So weit, so gut. Solange nichts schief geht, eventuelle Ausgaben der Kommandos a
 
 =over
 
-=item jedes einzelne abgesetzte Kommando führt eine erneute Authentifizierung beim entfernten Rechner durch, weswegen zum Teil unangenehme Laufzeiten entstehen können oder im schlimmsten Fall jedes mal eine Passwort-Eingabe notwendig wird.
+=item 
 
-=item jede Operation muß als ssh/scp Kommando zusammengestellt werden, schön wäre es, wenn die relevanten Inhalte der Kommandozeilen irgendwie gekapselt werden könnten.
+jedes einzelne abgesetzte Kommando führt eine erneute Authentifizierung beim entfernten Rechner durch, weswegen zum Teil unangenehme Laufzeiten entstehen können oder im schlimmsten Fall jedes mal eine Passwort-Eingabe notwendig wird.
 
-=item das Abfangen von Fehlern und eventuell Fehlermeldungen zur späteren Weiterverarbeitung wäre nett.
+=item 
 
-=item zumindest bei der Benutzung von C<system> können keine Daten auf dem Standard-Eingabe Kanal des entfernt laufenden Prozesses gelegt werden.
+jede Operation muss als ssh/scp Kommando zusammengestellt werden, schön wäre es, wenn die relevanten Inhalte der Kommandozeilen irgendwie gekapselt werden könnten.
+
+=item 
+
+das Abfangen von Fehlern und eventuell Fehlermeldungen zur späteren Weiterverarbeitung wäre nett.
+
+=item 
+
+zumindest bei der Benutzung von C<system> können keine Daten auf dem Standard-Eingabe Kanal des entfernt laufenden Prozesses gelegt werden.
 
 =back
 
@@ -35,31 +44,51 @@ Perl ist nicht nur die Sprache mit den vermutlich meisten Web Frameworks, sonder
 
 =over
 
-=item Net::OpenSSH
+=item 
 
-=item Net::SSH
+Net::OpenSSH
 
-=item Net::SSH::Perl
+=item 
 
-=item Net::SSH::Any
+Net::SSH
 
-=item Net::SSH::Expect
+=item 
 
-=item Net::SSH::Tunnel
+Net::SSH::Perl
 
-=item Net::SSH::W32Perl
+=item 
 
-=item Net::SSH2
+Net::SSH::Any
 
-=item Net::SSH2::Expect
+=item 
 
-=item IPC::PerlSSH
+Net::SSH::Expect
+
+=item 
+
+Net::SSH::Tunnel
+
+=item 
+
+Net::SSH::W32Perl
+
+=item 
+
+Net::SSH2
+
+=item 
+
+Net::SSH2::Expect
+
+=item 
+
+IPC::PerlSSH
 
 =back
 
-Jedes einzelne dieser Module hat seine Vor- und Nachteile oder ist für bestimmte Aufgaben besonders gut einsetzbar. Der Autor von L<Net::OpenSSH> hat sich die Mühe gemacht, die meisten der oben genannten gegeneinander zu vergleichen. Bei ihm erntet jedes Kritik, was sein persönlicher Grund war, L<Net::OpenSSH> zu entwickeln.
+Jedes einzelne dieser Module hat seine Vor- und Nachteile oder ist für bestimmte Aufgaben besonders gut einsetzbar. Der Autor von C<Net::OpenSSH> hat sich die Mühe gemacht, die meisten der oben genannten gegeneinander zu vergleichen. Bei ihm erntet jedes Kritik, was sein persönlicher Grund war, C<Net::OpenSSH> zu entwickeln.
 
-Der für mich persönlich ausschlaggebende Grund, L<Net::OpenSSH> einzusetzen, war dessen Performance. 100 ssh Verbindungen sind gegenüber dem direkten ssh-Aufruf aus einer Shell bei diesem Benchmark um Faktor 10 schneller. "v-webserver" soll einen Webserver in der DMZ unserer Firma sein. Der Aufruf erfolgte von meinem Arbeitsplatz-Rechner aus.
+Der für mich persönlich ausschlaggebende Grund, C<Net::OpenSSH> einzusetzen, war dessen Performance. 100 ssh Verbindungen sind gegenüber dem direkten ssh-Aufruf aus einer Shell bei diesem Benchmark um Faktor 10 schneller. "v-webserver" soll einen Webserver in der DMZ unserer Firma sein. Der Aufruf erfolgte von meinem Arbeitsplatz-Rechner aus.
 
     $ time for ((i=0; i<100; i++)); do ssh v-webserver true; done
     
@@ -75,7 +104,9 @@ Der für mich persönlich ausschlaggebende Grund, L<Net::OpenSSH> einzusetzen, w
     user  0m0.495s
     sys   0m0.473s
 
-Was passiert hier? Warum ist L<Net::OpenSSH> deutlich schneller? <Net::OpenSSH> verwendet für Verbindungen zum entfernten SSH-Server den sogenannten Slave-Modus. Technisch gesehen wird hierbei lediglich eine TCP-Verbindung zum entfernten Rechner geöffnet und die ssh-Verbindung inklusive Authentifizierung darüber hergestellt. Jedes einzelne abgesetzte Kommando startet zwar lokal und entfernt die notwendigen ssh- und Kommando-prozesse, nutzt aber die bereits bestehende ssh-Verbindung ohne eine weitere Authentifizierung ausführen zu müssen. Je nach Latenz im Netzwerk können die Geschwindigkeitssteigerungen mehr oder weniger groß sein. Erfahrungsgemäß liegt die Steigerung im Bereich von Faktor 5 bis Faktor 20.
+Was passiert hier? Warum ist C<Net::OpenSSH> deutlich schneller? C<Net::OpenSSH> verwendet für Verbindungen zum entfernten SSH-Server den sogenannten Slave-Modus. Technisch gesehen wird hierbei lediglich eine TCP-Verbindung zum entfernten Rechner geöffnet und die ssh-Verbindung inklusive Authentifizierung darüber hergestellt. Jedes einzelne abgesetzte Kommando startet zwar lokal und entfernt die notwendigen ssh- und Kommando-Prozesse, nutzt aber die bereits bestehende ssh-Verbindung ohne eine weitere Authentifizierung ausführen zu müssen. Je nach Latenz im Netzwerk können die Geschwindigkeitssteigerungen mehr oder weniger groß sein. Erfahrungsgemäß liegt die Steigerung im Bereich von Faktor 5 bis Faktor 20.
+
+Der Slave-Modus steht seit OpenSSH Version 4.1 zur Verfügung, welches auf Mai 2005 zurückzudatieren ist. Auf den meisten heute eingesetzten Systemen muss man sich damit keine Sorgen machen
 
 =head2 Beispiel
 
@@ -87,7 +118,7 @@ Was passiert hier? Warum ist L<Net::OpenSSH> deutlich schneller? <Net::OpenSSH> 
     # Verbindung aufbauen
     my $remote = Net::OpenSSH->new('me:secret@server.de');
     
-    # Standard Ausgabe zeilenweise
+    # Standard Ausgabe zeilenweise abholen
     my @output = $remote->capture('sudo grep "snmpd" /var/log/syslog');
     
     # Datei auf den entfernten Rechner kopieren
@@ -95,48 +126,62 @@ Was passiert hier? Warum ist L<Net::OpenSSH> deutlich schneller? <Net::OpenSSH> 
 
 =head2 Was bietet Net::OpenSSH alles?
 
-=over
+=head3 Verbindungsaufbau
 
-=item Verbindungsaufbau
-
-wahlweise ein sprechender String, der Benutzer, Passwort, Host und Port enthalten kann oder einzelne Argumente in Hash-Schreibweise.
+Zum Aufbau einer Verbindung kann wahlweise ein sprechender String mit Benutzer, Passwort, Host und Port oder einzelne Argumente in Hash-Schreibweise übergeben werden.
 
 Zusätzliche SSH-Optionen sind möglich. Außerdem kann das Passwort für den entfernten Rechner oder den lokal hinterlegten Schlüssel angegeben oder abgefragt werden.
 
-=item Fehler-Behandlung
+=head3 Fehler-Behandlung
 
-Die meisten Methoden einer ssh-Instanz liefern einen wahren Wert zurück, wenn die Ausführung erfolgreich war. Danach kann über die Methode C<error> der  Fehler der letzten Operation erfragt werden.
+Die meisten Methoden von C<Net::OpenSSH> liefern einen wahren Wert zurück, wenn die Ausführung erfolgreich war. Im Fehlerfall kann über die Methode C<error> der  Fehler der letzten Operation erfragt werden.
 
-* Ausführung von entfernten Kommandos
-  ->system
-  ->test
-  ->capture, ->capture2, ->pipe_in, ->pipe_out
+    $remote->execute('kommando', @argumente)
+        or die "execute Fehler: " . $remote->error;
 
-* Dateien kopieren
-  ->scp_get, ->scp_put
-  ->rsync_get, ->rsync_put
-  ->sftp
+=head3 Ausführung von entfernten Kommandos
+
+Im einfachsten Fall lassen sich Kommandos auf der entfernten Seite ausführen. Die Methode C<system> verhält sich wie sein lokales Äquivalent, sollte lediglich der positive Ausgang (exit Status: 0) eines Kommandos interessant sein, so kann die methode C<test> verwendet werden. Diverse Varianten von C<capture> sowie C<pipe_in>, C<pipe_out> und das Super-Talent C<open3> stehen zur Verfügung, um Daten von und zu den Standard Ein- oder Ausgabekanälen zu schleußen.
+
+    my ($in, $out, $err, $pid) =
+        $remote->open3('kommando', @argumente)
+            or die "open3 Fehler: " . $remote->error;
+    
+    # beliebige viele Dinge an den entfernten Prozess senden
+    print $in "Irgendwas...\n";
+    close($in);
+    
+    # warten bis der entfernte Prozess beendet ist
+    waitpid $pid, 0;
+
+=head3  Dateien kopieren
+
+Hier hat man die Wahl zwischen C<scp_get> bzw. C<scp_put>, um einzelne Dateien mit dem entfernten Rechner zu tauschen. Für ganze Verzeichnisse stehen C<rsync_get> und C<rsync_put> zur Verfügung. Wer innerhalb einer Sitzung viele Dateien austauschen will, kann auch C<sftp> zum Einsatz bringen. Hier ein Beispiel, mit dem gleichzeitig eine Bandbreiten-Limitierung auf 1 MBit/s gesetzt wird.
+
+    $remote->scp_get({ bwlimit => 1000 }, '/etc/passwd', '/tmp/passwd')
+        or die "scp Fehler: " . $remote->error;
+
+Erwähnenswert ist noch, dass einige der erwähnten Kommandos auch asynchron ( durch die Option C<<< { async => 1 } >>> verwendet werden können. In solchen Fällen wird immer die Prozess-ID des lokal gestarteten SSH Prozesses zurückgeliefert.
 
 =head2 Erweiterungen
 
-=over
+=head3 C<MooseX::Role::Net::OpenSSH>
 
-=item L<MooseX::Role::Net::OpenSSH>
+eine Moose-Rolle, die die Attribute C<ssh>, C<ssh_hostname>, C<ssh_username> sowie C<ssh_options> mitbringt. Die SSH-Verbindung wird beim ersten lesenden Zugriff auf das Attribut C<ssh> aufgebaut und bleibt für die Lebensdauer der diese Rolle konsumierenden Klasse erhalten.
 
-eine Moose-Rolle, die die Attribute C<ssh>, C<ssh_hostname>, C<ssh_username> sowie C<ssh_options> mitbringt. Die SSH-Verbindung wird beim ersten lesenden Zugriff auf C<ssh> aufgebaut und bleibt für die Lebensdauer der diese Rolle konsumierenden Klasse erhalten.
-
-=item L<Net::OpenSSH::Compat>
+=head3 C<Net::OpenSSH::Compat>
 
 bietet eine Reihe von Adaptern, mit denen das Verhalten diverser anderer SSH-Module emuliert wird.
 
-=item L<Net::OpenSSH::Parallel>
+=head3 C<Net::OpenSSH::Parallel>
 
 erlaubt die parallele Ausführung zahlreicher Kommandos auf einer Reihe verschiedener Rechner.
 
-=back
-
 =head2 Einschränkungen
-* nur SSH Protokoll Version 2
-* openssh 4.1+ erforderlich (2005)
-* Win32 nicht lauffähig
 
+Wer sich für C<Net::OpenSSH> entscheidet, kann lediglich Verbindungen mit dem
+SSH Protokoll Version 2 zum entfernten Rechner aufbauen. Aufgrund zahlreicher Verwundbarkeiten der älteren Version dürfte Version 2 heute der Standard sein.
+
+Das erforderliche OpenSSH in Version 4.1 existiert seit Mai 2005. Wer nicht gerade extrem betagte Server manipulieren muss, wird damit sicher kein Problem haben.
+
+C<Net::OpenSSH> unterstützt kein Windows. Für manche dürfte das vermutlich die einzige Einschränkung sein, die schwerwiegend ist.
